@@ -5,7 +5,7 @@ from firebase_admin import firestore
 import google.auth
 from google.cloud import pubsub
 
-from enum import Enum
+import requests
 
 cred = credentials.ApplicationDefault()
 firebase_admin.initialize_app(cred, {
@@ -15,20 +15,6 @@ db = firestore.client()
 
 publisher = pubsub.PublisherClient()
 topic_path = publisher.topic_path('biopred', 'jobs')
-
-itemType = {
-    "PROTEIN": 0,
-    "DNA": 1,
-    "RNA": 2,
-    "NA": 3,
-    "LIGAND": 4
-}
-
-searchType = {
-    "TERM": 5,
-    "IDCHAIN": 6,
-    "SEQUENCE": 7
-}
 
 def postPredictionJobs(items):
     output = []
@@ -44,4 +30,23 @@ def postPredictionJobs(items):
     return output
 
 def getItemSearch(items):
-    return [doc.to_dict()['chain'] for doc in db.collection('protein').limit(1).stream()]
+    output = []
+    for item in items:
+        if item['searchType']  == 5:
+            xml = "<orgPdbQuery><queryType>org.pdb.query.simple.AdvancedKeywordQuery</queryType><description>Text Search for: {}</description><keywords>{}</keywords></orgPdbQuery>".format(
+                item['searchTerm'],
+                item['searchTerm']
+            )
+            r = requests.post(
+                "https://www.rcsb.org/pdb/rest/search",
+                headers={
+                    'Content-Type': 'application/xml'
+                },
+                data=xml
+            )
+            
+        elif item['searchType']  == 6:
+            output.append(item)
+        elif item['searchType']  == 7:
+            output.append(item)
+    return output

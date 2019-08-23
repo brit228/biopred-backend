@@ -46,9 +46,17 @@ searchTypeEnum = GraphQLEnumType(
 itemInputType = GraphQLInputObjectType(
     name="ItemInput",
     fields={
+        "sequence": GraphQLInputObjectField(GraphQLNonNull(GraphQLString), description="Sequence of item."),
+        "itemType": GraphQLInputObjectField(GraphQLNonNull(itemTypeEnum), description="The type of item.")
+    }
+)
+
+searchInputType = GraphQLInputObjectType(
+    name="SearchInput",
+    fields={
         "searchTerm": GraphQLInputObjectField(GraphQLNonNull(GraphQLString), description="Search term for item."),
         "itemType": GraphQLInputObjectField(GraphQLNonNull(itemTypeEnum), description="The type of item."),
-        "searchType": GraphQLInputObjectField(GraphQLNonNull(searchTypeEnum), description="The type of search.")
+        "searchType": GraphQLInputObjectField(GraphQLNonNull(searchTypeEnum), description="The type of item.")
     }
 )
 
@@ -61,21 +69,13 @@ predictionInputType = GraphQLInputObjectType(
     }
 )
 
-itemType = GraphQLObjectType(
-    "Item",
-    fields=lambda: {
-        "searchTerm": GraphQLField(GraphQLNonNull(searchTypeEnum), description="Search term for item."),
-        "itemType": GraphQLField(GraphQLNonNull(itemTypeEnum), description="The type of item."),
-        "searchType": GraphQLField(GraphQLNonNull(GraphQLString), description="The type of search.")
-    }
-)
-
 itemResultType = GraphQLObjectType(
     "ItemResult",
     fields=lambda: {
         "searchTerm": GraphQLField(GraphQLNonNull(searchTypeEnum), description="Search term for item."),
         "itemType": GraphQLField(GraphQLNonNull(itemTypeEnum), description="The type of item."),
-        "searchType": GraphQLField(GraphQLNonNull(GraphQLString), description="The type of search.")
+        "searchType": GraphQLField(GraphQLNonNull(GraphQLString), description="The type of search."),
+        "sequence": GraphQLField(GraphQLNonNull(GraphQLString), description="Sequence of item.")
     }
 )
 
@@ -106,8 +106,8 @@ queryType = GraphQLObjectType(
             GraphQLList(GraphQLString),
             args={
                 "items": GraphQLArgument(
-                    description="Pairs of item inputs for prediction.",
-                    type=GraphQLNonNull(GraphQLList(itemInputType))
+                    description="Item inputs for searching sequences/smiles.",
+                    type=GraphQLNonNull(GraphQLList(searchInputType))
                 )
             },
             resolver=lambda root, info, **args: getItemSearch(args["items"])
