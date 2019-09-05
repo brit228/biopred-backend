@@ -1,6 +1,7 @@
 import graphene
 
 import firebase_admin
+from firebase_admin import auth
 from firebase_admin import credentials
 from firebase_admin import firestore
 
@@ -10,7 +11,7 @@ from google.cloud import pubsub
 import requests
 
 import datetime
-
+import os
 
 cred = credentials.ApplicationDefault()
 firebase_admin.initialize_app(cred, {
@@ -24,7 +25,6 @@ topic_path = publisher.topic_path('biopred', 'jobs')
 
 class Item(graphene.InputObjectType):
     sequence = graphene.String()
-    term = graphene.String()
     searchType = graphene.String(required=True)
     itemType = graphene.String(required=True)
 
@@ -39,32 +39,26 @@ class PredictionList(graphene.InputObjectType):
 
 class Query(graphene.ObjectType):
     post_prediction_jobs = graphene.Field(graphene.List(graphene.String), inputs=graphene.Argument(PredictionList, required=True))
-    # get_item_search = graphene.Field(Item)
 
     def resolve_post_prediction_jobs(parent, info, inputs):
+        uid = info.context.get_json().get('authentication', {}).get('uid', '')
+        atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
+        assert uid != '' and atk != ""
+        assert uid == auth.verify_id_token(atk)['uid']
+        docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
+        assert len(docs) > 0
+        assert docs[0].get('limit') > len(inputs['predictions'])
+        docs[0].reference.update({"limit": docs[0].get('limit')-len(inputs['predictions'])})
         output = []
-        for item in parent:
+        for item in inputs['predictions']:
             doc_ref = db.collection('jobs').document()
             doc_ref.set(item)
             doc_ref.update({
-                "status": "pending",
+                "status": "processing",
                 "timestamp": datetime.datetime.now()
             })
             publisher.publish(topic_path, doc_ref.path.encode('utf-8'))
             output.append(doc_ref.path)
         return output
-
-    # def resolve_get_item_search(parent, info):
-    #     xml = "<orgPdbQuery><queryType>org.pdb.query.simple.AdvancedKeywordQuery</queryType><description>Text Search for: {}</description><keywords>{}</keywords></orgPdbQuery>".format(
-    #         item['searchTerm'],
-    #         item['searchTerm']
-    #     )
-    #     r = requests.post(
-    #         "https://www.rcsb.org/pdb/rest/search",
-    #         headers={
-    #             'Content-Type': 'application/xml'
-    #         },
-    #         data=xml
-    #     )
 
 predictSchema = graphene.Schema(query=Query, types=[Item, Prediction, PredictionList])
