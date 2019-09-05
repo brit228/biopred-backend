@@ -29,7 +29,7 @@ class PredictionResult(graphene.ObjectType):
     predSubSeqItem2 = graphene.Boolean()
     predSubSeqItem3 = graphene.Boolean()
     result = graphene.List(graphene.List(graphene.Float))
-    timestamp = graphene.Timestamp()
+    timestamp = graphene.DateTime()
 
 class Item(graphene.InputObjectType):
     sequence = graphene.String()
