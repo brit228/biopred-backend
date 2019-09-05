@@ -55,6 +55,7 @@ class Query(graphene.ObjectType):
             doc_ref.set(item)
             doc_ref.update({
                 "status": "processing",
+                "uid": uid,
                 "timestamp": datetime.datetime.now()
             })
             publisher.publish(topic_path, doc_ref.path.encode('utf-8'))
