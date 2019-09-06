@@ -128,4 +128,4 @@ class Query(graphene.ObjectType):
             i += 1
         return out
 
-predictSchema = graphene.Schema(query=Query, types=[Item, Prediction, PredictionList])
+predictSchema = graphene.Schema(query=Query, types=[Item, Prediction, PredictionList, PredictionResult])
