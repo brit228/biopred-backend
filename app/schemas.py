@@ -81,7 +81,7 @@ class Query(graphene.ObjectType):
         i = 0
         out = []
         for d in docs:
-            if i < inputs*20 and i > (inputs-1)*20:
+            if i < inputs*20 and i >= (inputs-1)*20:
                 out.append({
                     "sequence1": d.get('item1').get('sequence'),
                     "sequence2": d.get('item2').get('sequence'),
