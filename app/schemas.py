@@ -90,7 +90,7 @@ class Query(graphene.ObjectType):
                     "predSubSeqItem1": d.get('predSubSeqItem1'),
                     "predSubSeqItem2": d.get('predSubSeqItem2'),
                     "predSubSeqItem3": d.get('item2').get('searchType') != 'ALL',
-                    "results": d.get('result'),
+                    "results": [x['value'] for x in d.get('result')],
                     "timestamp": d.get('timestamp')
                 })
             elif i >= inputs*20:
@@ -120,7 +120,7 @@ class Query(graphene.ObjectType):
                     "predSubSeqItem1": d.get('predSubSeqItem1'),
                     "predSubSeqItem2": d.get('predSubSeqItem2'),
                     "predSubSeqItem3": d.get('item2').get('searchType') != 'ALL',
-                    "results": d.get('result'),
+                    "results": [x['value'] for x in d.get('result')],
                     "timestamp": d.get('timestamp')
                 })
             elif i >= inputs*20:
