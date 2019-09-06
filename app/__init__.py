@@ -1,4 +1,4 @@
-from flask import request, Flask
+from flask import request, response, Flask
 from flask_cors import CORS, cross_origin
 from flask_graphql import GraphQLView
 
@@ -16,10 +16,10 @@ app.add_url_rule('/graph', view_func=GraphQLView.as_view('graphql', schema=predi
 def checkInBase():
     uid = request.get_json().get('uid', '')
     atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
-    assert uid != '' and atk != ""
-    assert uid == auth.verify_id_token(atk)['uid']
+    assert uid != '' and atk != "", '{"error": true}'
+    assert uid == auth.verify_id_token(atk)['uid'], '{"error": true}'
     docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
-    assert len(docs) > 0
+    assert len(docs) > 0, '{"error": true}'
     docs = db.collection('users').where('uid', '==', uid).stream()
     doc = [d for d in docs][0]
     return '{"limit": '+doc.get('limit')+'}'
