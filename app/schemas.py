@@ -51,6 +51,7 @@ class Query(graphene.ObjectType):
     post_prediction_jobs = graphene.Field(graphene.List(graphene.String), inputs=graphene.Argument(PredictionList, required=True))
     get_prediction_results = graphene.Field(graphene.List(PredictionResult), inputs=graphene.Argument(graphene.Int))
     get_my_prediction_results = graphene.Field(graphene.List(PredictionResult), inputs=graphene.Argument(graphene.Int))
+    get_result = graphene.Field(graphene.List(graphene.List(graphene.Float)), inputs=graphene.Argument(graphene.String))
 
     def resolve_post_prediction_jobs(parent, info, inputs):
         uid = info.context.get_json().get('authentication', {}).get('uid', '')
@@ -97,6 +98,9 @@ class Query(graphene.ObjectType):
                 break
             i += 1
         return out
+
+    def resolve_get_result(parent, info, inputs):
+        return [x['value'] for x in db.collection('jobs').document(inputs).get('result')]
 
     def resolve_get_my_prediction_results(parent, info, inputs):
         uid = info.context.get_json().get('authentication', {}).get('uid', '')
