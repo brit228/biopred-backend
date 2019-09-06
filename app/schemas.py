@@ -30,7 +30,7 @@ class PredictionResult(graphene.ObjectType):
     predSubSeqItem1 = graphene.Boolean()
     predSubSeqItem2 = graphene.Boolean()
     predSubSeqItem3 = graphene.Boolean()
-    results = graphene.List(graphene.List(graphene.Float))
+    jobid = graphene.String()
     timestamp = graphene.DateTime()
 
 class Item(graphene.InputObjectType):
