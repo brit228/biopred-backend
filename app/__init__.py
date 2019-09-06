@@ -16,13 +16,16 @@ app.add_url_rule('/graph', view_func=GraphQLView.as_view('graphql', schema=predi
 def checkInBase():
     uid = request.form.get('uid', '')
     atk = request.form.get('accessToken', '')
-    assert uid != '' and atk != "", '{"error": true}'
-    assert uid == auth.verify_id_token(atk)['uid'], '{"error": true}'
-    docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
-    assert len(docs) > 0, '{"error": true}'
-    docs = db.collection('users').where('uid', '==', uid).stream()
-    doc = [d for d in docs][0]
-    return '{"limit": '+doc.get('limit')+'}'
+    if uid != '' and atk != "":
+        if not uid == auth.verify_id_token(atk)['uid']:
+            return '{"error": "uid not in authentication database"}'
+        docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
+        if not len(docs) > 0:
+            return '{"error": "uid not in users database"}'
+        docs = db.collection('users').where('uid', '==', uid).stream()
+        doc = [d for d in docs][0]
+        return '{"limit": '+doc.get('limit')+'}'
+    return '{"error": "uid and access token not formatted correctly"}'
 
 @app.route('/complete', methods=['POST'])
 def completeRegistration():
