@@ -14,8 +14,8 @@ app.add_url_rule('/graph', view_func=GraphQLView.as_view('graphql', schema=predi
 
 @app.route('/', methods=['POST'])
 def checkInBase():
-    uid = request.get_json().get('uid', '')
-    atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
+    uid = request.form.get('uid', '')
+    atk = request.form.get('accessToken', '')
     assert uid != '' and atk != "", '{"error": true}'
     assert uid == auth.verify_id_token(atk)['uid'], '{"error": true}'
     docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
