@@ -25,6 +25,8 @@ topic_path = publisher.topic_path('biopred', 'jobs')
 class PredictionResult(graphene.ObjectType):
     sequence1 = graphene.String()
     sequence2 = graphene.String()
+    type1 = graphene.String()
+    type2 = graphene.String()
     predSubSeqItem1 = graphene.Boolean()
     predSubSeqItem2 = graphene.Boolean()
     predSubSeqItem3 = graphene.Boolean()
@@ -83,6 +85,8 @@ class Query(graphene.ObjectType):
                 out.append({
                     "sequence1": d.get('item1').get('sequence'),
                     "sequence2": d.get('item2').get('sequence'),
+                    "type1": d.get('item1').get('itemType'),
+                    "type2": d.get('item2').get('itemType'),
                     "predSubSeqItem1": d.get('predSubSeqItem1'),
                     "predSubSeqItem2": d.get('predSubSeqItem2'),
                     "predSubSeqItem3": d.get('item2').get('searchType') != 'ALL',
@@ -111,6 +115,8 @@ class Query(graphene.ObjectType):
                 out.append({
                     "sequence1": d.get('item1').get('sequence'),
                     "sequence2": d.get('item2').get('sequence'),
+                    "type1": d.get('item1').get('itemType'),
+                    "type2": d.get('item2').get('itemType'),
                     "predSubSeqItem1": d.get('predSubSeqItem1'),
                     "predSubSeqItem2": d.get('predSubSeqItem2'),
                     "predSubSeqItem3": d.get('item2').get('searchType') != 'ALL',

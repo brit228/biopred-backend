@@ -14,9 +14,9 @@ app.add_url_rule('/graph', view_func=GraphQLView.as_view('graphql', schema=predi
 
 @app.route('/', methods=['POST'])
 def checkInBase():
-    uid = request.form.get('uid', '')
-    atk = request.form.get('accessToken', '')
-    if uid != '' and atk != "":
+    uid = request.get_json().get('uid', '')
+    atk = request.get_json().get('accessToken', '')
+    if uid != '' and atk != '':
         if not uid == auth.verify_id_token(atk)['uid']:
             return '{"error": "uid not in authentication database"}'
         docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
@@ -24,7 +24,7 @@ def checkInBase():
             return '{"error": "uid not in users database"}'
         docs = db.collection('users').where('uid', '==', uid).stream()
         doc = [d for d in docs][0]
-        return '{"limit": '+doc.get('limit')+'}'
+        return '{"limit": '+str(doc.get('limit'))+'}'
     return '{"error": "uid and access token not formatted correctly"}'
 
 @app.route('/complete', methods=['POST'])
