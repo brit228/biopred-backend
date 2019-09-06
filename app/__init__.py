@@ -1,4 +1,4 @@
-from flask import request, response, Flask
+from flask import request, Flask
 from flask_cors import CORS, cross_origin
 from flask_graphql import GraphQLView
 
