@@ -100,7 +100,7 @@ class Query(graphene.ObjectType):
         return out
 
     def resolve_get_result(parent, info, inputs):
-        return [x['value'] for x in db.collection('jobs').document(inputs).get('result')]
+        return [x['value'] for x in db.collection('jobs').document(inputs).get().get('result')]
 
     def resolve_get_my_prediction_results(parent, info, inputs):
         uid = info.context.get_json().get('authentication', {}).get('uid', '')
