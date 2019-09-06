@@ -12,19 +12,17 @@ app = Flask(__name__)
 cors = CORS(app)
 app.add_url_rule('/graph', view_func=GraphQLView.as_view('graphql', schema=predictSchema, graphiql=True))
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['POST'])
 def checkInBase():
     uid = request.get_json().get('uid', '')
-    if uid != '':
-        try:
-            auth.get_user(uid)
-        except ValueError:
-            return '{"error": "invalid uid"}'
-        except auth.AuthError:
-            return '{"error": "user does not exist"}'
-        docs = db.collection('users').where('uid', '==', uid).stream()
-        doc = [d for d in docs][0]
-        return '{"limit": '+doc.get('limit')+'}'
+    atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
+    assert uid != '' and atk != ""
+    assert uid == auth.verify_id_token(atk)['uid']
+    docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
+    assert len(docs) > 0
+    docs = db.collection('users').where('uid', '==', uid).stream()
+    doc = [d for d in docs][0]
+    return '{"limit": '+doc.get('limit')+'}'
 
 @app.route('/complete', methods=['POST'])
 def completeRegistration():
