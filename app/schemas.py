@@ -90,11 +90,11 @@ class Query(graphene.ObjectType):
         docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
         assert len(docs) > 0
         return [{
-            'sequence': d['sequence'],
-            'result': d['result'],
-            'jobname': d['jobname'],
-            'timestamp': d['timestamp'],
-            'status': d['status']
+            'sequence': d.get('sequence'),
+            'result': d.get('result'),
+            'jobname': d.get('jobname'),
+            'timestamp': d.get('timestamp'),
+            'status': d.get('status')
         } for d in db.collection(
             'jobs/rnaprotein/jobs'
         ).where(
