@@ -101,8 +101,6 @@ class Query(graphene.ObjectType):
             'user', '==', uid
         ).where(
             'status', '<', 'processing'
-        ).where(
-            'status', '>', 'processing'
         ).order_by(
             'status'
         ).order_by(
@@ -122,8 +120,6 @@ class Query(graphene.ObjectType):
             'jobs/rnaprotein/jobs'
         ).where(
             'status', '<', 'processing'
-        ).where(
-            'status', '>', 'processing'
         ).order_by(
             'status'
         ).order_by(
