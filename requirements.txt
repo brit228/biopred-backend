@@ -4,6 +4,5 @@ Flask-Cors==3.0.8
 Flask-GraphQL==2.0.0
 firebase-admin==2.18.0
 google-auth==1.6.3
-google-cloud-pubsub==0.45.0
 graphene==2.1.8
 requests==2.22.0

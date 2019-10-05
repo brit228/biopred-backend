@@ -6,9 +6,6 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 
 import google.auth
-from google.cloud import pubsub
-
-import requests
 
 import datetime
 import os
@@ -19,117 +16,137 @@ firebase_admin.initialize_app(cred, {
 })
 db = firestore.client()
 
-publisher = pubsub.PublisherClient()
-topic_path = publisher.topic_path('biopred', 'jobs')
+class RNAProteinMonomer(graphene.ObjectType):
+    resabbrev = graphene.String()
+    interaction = graphene.Float()
 
-class PredictionResult(graphene.ObjectType):
-    sequence1 = graphene.String()
-    sequence2 = graphene.String()
-    type1 = graphene.String()
-    type2 = graphene.String()
-    predSubSeqItem1 = graphene.Boolean()
-    predSubSeqItem2 = graphene.Boolean()
-    predSubSeqItem3 = graphene.Boolean()
-    jobid = graphene.String()
-    timestamp = graphene.DateTime()
-
-class Item(graphene.InputObjectType):
+class RNAProteinPredictionResult(graphene.ObjectType):
     sequence = graphene.String()
-    searchType = graphene.String(required=True)
-    itemType = graphene.String(required=True)
+    result = graphene.List(RNAProteinMonomer)
+    jobname = graphene.String()
+    timestamp = graphene.DateTime()
+    status = graphene.String()
 
-class Prediction(graphene.InputObjectType):
-    item1 = graphene.Field(Item, required=True)
-    item2 = graphene.Field(Item, required=True)
-    predSubSeqItem1 = graphene.Boolean(required=True)
-    predSubSeqItem2 = graphene.Boolean(required=True)
-
-class PredictionList(graphene.InputObjectType):
-    predictions = graphene.List(Prediction)
+class RNAProteinPredictionInput(graphene.InputObjectType):
+    sequence = graphene.String(required=True)
+    jobname = graphene.String(required=True)
 
 class Query(graphene.ObjectType):
-    post_prediction_jobs = graphene.Field(graphene.List(graphene.String), inputs=graphene.Argument(PredictionList, required=True))
-    get_prediction_results = graphene.Field(graphene.List(PredictionResult), inputs=graphene.Argument(graphene.Int))
-    get_my_prediction_results = graphene.Field(graphene.List(PredictionResult), inputs=graphene.Argument(graphene.Int))
-    get_result = graphene.Field(graphene.List(graphene.List(graphene.Float)), inputs=graphene.Argument(graphene.String))
+    check_in = graphene.Field(graphene.Int)
+    complete_registration = graphene.Field(graphene.Boolean, typ=graphene.String(required=True))
+    delete_me = graphene.Field(graphene.Boolean)
+    my_rna_protein_predictions = graphene.Field(graphene.List(RNAProteinPredictionResult))
+    all_rna_protein_predictions = graphene.Field(graphene.List(RNAProteinPredictionResult))
+    make_rna_protein_prediction = graphene.Field(graphene.Boolean, inp=graphene.Argument(RNAProteinPredictionInput, required=True))
 
-    def resolve_post_prediction_jobs(parent, info, inputs):
+    def resolve_check_in(parent, info):
         uid = info.context.get_json().get('authentication', {}).get('uid', '')
         atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
         assert uid != '' and atk != ""
         assert uid == auth.verify_id_token(atk)['uid']
         docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
         assert len(docs) > 0
-        assert docs[0].get('limit') > len(inputs['predictions'])
-        docs[0].reference.update({"limit": docs[0].get('limit')-len(inputs['predictions'])})
-        output = []
-        for item in inputs['predictions']:
-            doc_ref = db.collection('jobs').document()
-            doc_ref.set(item)
-            doc_ref.update({
-                "status": "processing",
-                "uid": uid,
-                "timestamp": datetime.datetime.now()
-            })
-            publisher.publish(topic_path, doc_ref.path.encode('utf-8'))
-            output.append(doc_ref.path)
-        return output
+        doc = docs[0]
+        return doc.get('limit')
 
-    def resolve_get_prediction_results(parent, info, inputs):
-        docs = db.collection('jobs').where('status', '==', 'complete').order_by(
-            'timestamp', direction=firestore.Query.DESCENDING
-        ).limit(1000).stream()
-        i = 0
-        out = []
-        for d in docs:
-            if i < inputs*10 and i >= (inputs-1)*10:
-                out.append({
-                    "sequence1": d.get('item1').get('sequence'),
-                    "sequence2": d.get('item2').get('sequence'),
-                    "type1": d.get('item1').get('itemType'),
-                    "type2": d.get('item2').get('itemType'),
-                    "predSubSeqItem1": d.get('predSubSeqItem1'),
-                    "predSubSeqItem2": d.get('predSubSeqItem2'),
-                    "predSubSeqItem3": d.get('item2').get('searchType') != 'ALL',
-                    "jobid": d.reference.path,
-                    "timestamp": d.get('timestamp')
-                })
-            elif i >= inputs*10:
-                break
-            i += 1
-        return out
+    def resolve_complete_registration(parent, info, typ):
+        uid = info.context.get_json().get('authentication', {}).get('uid', '')
+        atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
+        assert uid != '' and typ != ''
+        try:
+            auth.get_user(uid)
+        except ValueError:
+            assert False
+        except auth.AuthError:
+            assert False
+        docs = db.collection('users').where('uid', '==', uid).stream()
+        assert len([d for d in docs]) == 0
+        db.collection('users').add({
+            'uid': uid,
+            'type': typ,
+            'limit': 1000,
+            'created': datetime.datetime.now(),
+            'lastIncrease': datetime.datetime.now(),
+            'total': 1000
+        })
+        return True
 
-    def resolve_get_result(parent, info, inputs):
-        return [x['value'] for x in db.collection('jobs').document(inputs).get().get('result')]
-
-    def resolve_get_my_prediction_results(parent, info, inputs):
+    def resolve_delete_me(parent, info):
         uid = info.context.get_json().get('authentication', {}).get('uid', '')
         atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
         assert uid != '' and atk != ""
         assert uid == auth.verify_id_token(atk)['uid']
         docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
         assert len(docs) > 0
-        docs = db.collection('jobs').where('uid', '==', uid).where('status', '==', 'complete').order_by(
-            'timestamp', direction=firestore.Query.DESCENDING
-        ).limit(1000).stream()
-        i = 0
-        out = []
-        for d in docs:
-            if i < inputs*10 and i >= (inputs-1)*10:
-                out.append({
-                    "sequence1": d.get('item1').get('sequence'),
-                    "sequence2": d.get('item2').get('sequence'),
-                    "type1": d.get('item1').get('itemType'),
-                    "type2": d.get('item2').get('itemType'),
-                    "predSubSeqItem1": d.get('predSubSeqItem1'),
-                    "predSubSeqItem2": d.get('predSubSeqItem2'),
-                    "predSubSeqItem3": d.get('item2').get('searchType') != 'ALL',
-                    "jobid": d.reference.path,
-                    "timestamp": d.get('timestamp')
-                })
-            elif i >= inputs*10:
-                break
-            i += 1
-        return out
+        docs[0].delete()
+        return True
 
-predictSchema = graphene.Schema(query=Query, types=[Item, Prediction, PredictionList, PredictionResult])
+    def resolve_my_rna_protein_predictions(parent, info):
+        uid = info.context.get_json().get('authentication', {}).get('uid', '')
+        atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
+        assert uid != '' and atk != ""
+        assert uid == auth.verify_id_token(atk)['uid']
+        docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
+        assert len(docs) > 0
+        return [{
+            'sequence': d['sequence'],
+            'result': d['result'],
+            'jobname': d['jobname'],
+            'timestamp': d['timestamp'],
+            'status': d['status']
+        } for d in db.collection(
+            'jobs/rnaprotein/jobs'
+        ).where(
+            'user', '==', uid
+        ).where(
+            'status', '<', 'processing'
+        ).where(
+            'status', '>', 'processing'
+        ).order_by(
+            'timestamp', direction=firestore.Query.DESCENDING
+        ).limit(
+            100
+        ).stream()]
+
+    def resolve_all_rna_protein_predictions(parent, info):
+        return [{
+            'sequence': d.get('sequence'),
+            'result': d.get('result'),
+            'jobname': d.get('jobname'),
+            'timestamp': d.get('timestamp'),
+            'status': d.get('status')
+        } for d in db.collection(
+            'jobs/rnaprotein/jobs'
+        ).where(
+            'status', '<', 'processing'
+        ).where(
+            'status', '>', 'processing'
+        ).order_by(
+            'status'
+        ).order_by(
+            'timestamp', direction=firestore.Query.DESCENDING
+        ).limit(
+            100
+        ).stream()]
+
+    def resolve_make_rna_protein_prediction(parent, info, inp):
+        uid = info.context.get_json().get('authentication', {}).get('uid', '')
+        atk = info.context.get_json().get('authentication', {}).get('accessToken', '')
+        assert uid != '' and atk != ""
+        assert uid == auth.verify_id_token(atk)['uid']
+        docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
+        assert len(docs) > 0
+        assert docs[0].get('limit') > 0
+        docs[0].reference.update({'limit': docs[0].get('limit') - 1})
+        db.collection('jobs/rnaprotein/jobs').add({
+            'user': uid,
+            'sequence': inp['sequence'],
+            'result': [],
+            'jobname': inp['jobname'],
+            'timestamp': datetime.datetime.now(),
+            'status': 'processing'
+        })
+        return True
+        
+
+predictSchema = graphene.Schema(query=Query, types=[RNAProteinMonomer, RNAProteinPredictionInput, RNAProteinPredictionResult])
