@@ -79,6 +79,7 @@ class Query(graphene.ObjectType):
         docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
         assert len(docs) > 0
         docs[0].delete()
+        auth.delete_user(uid)
         return True
 
     def resolve_my_rna_protein_predictions(parent, info):
@@ -102,6 +103,8 @@ class Query(graphene.ObjectType):
             'status', '<', 'processing'
         ).where(
             'status', '>', 'processing'
+        ).order_by(
+            'status'
         ).order_by(
             'timestamp', direction=firestore.Query.DESCENDING
         ).limit(
