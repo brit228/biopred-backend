@@ -78,7 +78,7 @@ class Query(graphene.ObjectType):
         assert uid == auth.verify_id_token(atk)['uid']
         docs = [d for d in db.collection('users').where('uid', '==', uid).stream()]
         assert len(docs) > 0
-        docs[0].delete()
+        docs[0].reference.delete()
         auth.delete_user(uid)
         return True
 
