@@ -1,6 +1,6 @@
 Cython==0.29.13
 Flask==1.1.1
-Flask-Cors==3.0.8
+Flask-Cors==3.0.9
 Flask-GraphQL==2.0.0
 firebase-admin==2.18.0
 google-auth==1.6.3
